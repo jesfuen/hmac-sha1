@@ -26,7 +26,7 @@ main(int argc, char *argv[]) {
     unsigned int md_len;
     char mess1[] = "Test Message\n";
 
-    if (argc != 2) {
+    if (argc < 2) {
         usage();
     }
 
@@ -41,10 +41,18 @@ main(int argc, char *argv[]) {
         errx(EXIT_FAILURE,"Message digest initialization failed.\n");
     }
 
+    for (int i = 0; i < argc; i++) {
+        if (!EVP_DigestUpdate(mdctx, argv[i], strlen(mess1))) {
+            errx(EXIT_FAILURE,"Message digest update failed.\n");
+        }
+    }
+
+    /*
     // Cambiar seccion a un bucle for para ir haciendo update
     if (!EVP_DigestUpdate(mdctx, mess1, strlen(mess1))) {
         errx(EXIT_FAILURE,"Message digest update failed.\n");
     }
+    */
 
     if (!EVP_DigestFinal_ex(mdctx,hash, &md_len)) {
         errx(EXIT_FAILURE,"Message digest finalization failed.\n");
