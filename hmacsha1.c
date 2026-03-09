@@ -30,7 +30,7 @@ create_hash(unsigned int *md_len, unsigned char *hash , FILE *fd) {
         errx(EXIT_FAILURE,"Message digest initialization failed.\n");
     }
 
-    // Leer del fichero e ir actualizando
+    
     while ((br = fread(buffer, 1, sizeof(buffer), fd)) > 0) {
         if (!EVP_DigestUpdate(mdctx, buffer, br))
             errx(EXIT_FAILURE, "Message digest update failed.\n");
