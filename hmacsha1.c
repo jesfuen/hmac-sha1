@@ -10,10 +10,8 @@ enum {
 
 void
 usage() {
-    errx(EXIT_FAILURE,"usage: hash-sha1 str");
+    errx(EXIT_FAILURE,"usage: hash-sha1 datafile keyfile");
 }
-
-
 
 void
 create_hash(unsigned int *md_len, unsigned char *hash , FILE *fd) {  
@@ -52,18 +50,34 @@ main(int argc, char *argv[]) {
 
     unsigned char hash[EVP_MAX_MD_SIZE];
     unsigned int md_len;
-    FILE *fd;
+    FILE *fd_data;
+    FILE *fd_key;
+    unsigned char k_ipad[EVP_MAX_MD_SIZE];
+    unsigned char k_opad[EVP_MAX_MD_SIZE];
 
-    if (argc != 2) {
+    if (argc != 3) {
         usage();
     }
 
-    fd = fopen(argv[1], "r");
-    if (fd == NULL) {
+    // Fichero de datos
+    fd_data = fopen(argv[1], "r");
+    if (fd_data == NULL) {
         err(EXIT_FAILURE,"error: open failed!");
     }
 
-    create_hash(&md_len,hash,fd);
+    // Fichero de key
+    fd_key = fopen(argv[2],"r");
+    if (fd_key == NULL) {
+        err(EXIT_FAILURE,"error: open failed!");
+    }
+
+    // Crear la hash de la key? -> Solo si la key es mayor de 64 bytes, se corresponde a la parte opcional
+    // create_hash(fd_key);
+    // De normal si la clave supera los 64 bytes, se manda tal cual pero rellenando con ceros hasta completar los 64 bytes
+    // Dar un warning al usuario si la key es menor de 20 bytes
+
+    // Aqui habria que crear el XOR y pasarselo a la funcion create_hash
+    create_hash(&md_len,hash,fd_data);
     
 
     for (int i = 0; i < md_len; i++) {
