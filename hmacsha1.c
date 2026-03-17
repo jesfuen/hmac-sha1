@@ -1,8 +1,10 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
 #include <openssl/evp.h>
 #include <string.h>
+#include <strings.h>
 
 enum {
     BUFSIZE = 4096
@@ -54,30 +56,67 @@ main(int argc, char *argv[]) {
     FILE *fd_key;
     unsigned char k_ipad[EVP_MAX_MD_SIZE];
     unsigned char k_opad[EVP_MAX_MD_SIZE];
+    char *key;
+    int key_len = 0;
+    size_t br;
+    int i;
 
     if (argc != 3) {
         usage();
     }
 
-    // Fichero de datos
     fd_data = fopen(argv[1], "r");
     if (fd_data == NULL) {
         err(EXIT_FAILURE,"error: open failed!");
     }
 
-    // Fichero de key
     fd_key = fopen(argv[2],"r");
     if (fd_key == NULL) {
         err(EXIT_FAILURE,"error: open failed!");
     }
 
-    // Crear la hash de la key? -> Solo si la key es mayor de 64 bytes, se corresponde a la parte opcional
-    // create_hash(fd_key);
-    // De normal si la clave supera los 64 bytes, se manda tal cual pero rellenando con ceros hasta completar los 64 bytes
-    // Dar un warning al usuario si la key es menor de 20 bytes
+    // Leer con realloc para ver el tamaño de la key
+    key = malloc(EVP_MAX_MD_SIZE);
+    if (key == NULL) {
+        errx(EXIT_FAILURE, "error: malloc failed!");
+    }
+
+    while ((br = fread(key + key_len, sizeof(char), EVP_MAX_MD_SIZE , fd_key)) > 0) {
+        key_len += br;
+        key = realloc(key, key_len + EVP_MAX_MD_SIZE);
+        if (key == NULL) {
+            errx(EXIT_FAILURE, "error: realloc failed!");
+        }
+    }
+
+    // Inicializar los k_ipad y k_opad
+    bzero(k_ipad,sizeof(k_ipad));
+    bzero(k_opad,sizeof(k_opad));
+
+    if (key_len < 20) {
+        warnx("warning: key is too short (should be longer than 20 bytes)");
+        // meter la key en ipad y opad
+        bcopy(key, k_ipad, key_len);
+        bcopy(key,k_opad,key_len);
+    } else if (key_len <= 64) {
+        // meter la key en ipad y opad
+        bcopy(key, k_ipad, key_len);
+        bcopy(key,k_opad,key_len);
+    } else {
+        // Hacer la hash de la key y meterla en ipad y opad
+    }
+
+    for (i=0; i<64; i++) {
+        k_ipad[i] ^= 0x36;
+        k_opad[i] ^= 0x5c;
+    }
+
 
     // Aqui habria que crear el XOR y pasarselo a la funcion create_hash
     create_hash(&md_len,hash,fd_data);
+
+    fclose(fd_data);
+    fclose(fd_key);
     
 
     for (int i = 0; i < md_len; i++) {
