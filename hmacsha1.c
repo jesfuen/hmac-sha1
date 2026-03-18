@@ -10,13 +10,23 @@ enum {
     BUFSIZE = 4096
 };
 
+
+
 void
 usage() {
     errx(EXIT_FAILURE,"usage: hash-sha1 datafile keyfile");
 }
 
+
+/*
+USOS DE create_hash():
+
+    1- Crear SHA1(key^ipad || data) 
+    2- Crear SHA1(key^opad || SHA1(key^ipad || data))
+    3- Crear SHA1(key) si key > 64 bytes
+*/
 void
-create_hash(unsigned int *md_len, unsigned char *hash , FILE *fd) {  
+create_hash(unsigned int *md_len, unsigned char *hash , FILE *fd_data, FILE *fd_key, unsigned char) {
     EVP_MD_CTX *mdctx;
     unsigned char buffer[BUFSIZE];
     size_t br;
@@ -47,6 +57,9 @@ create_hash(unsigned int *md_len, unsigned char *hash , FILE *fd) {
 
 
 
+
+
+
 int
 main(int argc, char *argv[]) {
 
@@ -56,7 +69,7 @@ main(int argc, char *argv[]) {
     FILE *fd_key;
     unsigned char k_ipad[EVP_MAX_MD_SIZE];
     unsigned char k_opad[EVP_MAX_MD_SIZE];
-    char *key;
+    unsigned char *key;
     int key_len = 0;
     size_t br;
     int i;
@@ -106,7 +119,7 @@ main(int argc, char *argv[]) {
         // Hacer la hash de la key y meterla en ipad y opad
     }
 
-    for (i=0; i<64; i++) {
+    for (i = 0; i < 64; i++) {
         k_ipad[i] ^= 0x36;
         k_opad[i] ^= 0x5c;
     }
@@ -123,5 +136,6 @@ main(int argc, char *argv[]) {
         printf("%02x",hash[i]);
     }
 
+    free(key);
     exit(EXIT_SUCCESS);
 }
