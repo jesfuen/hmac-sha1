@@ -67,9 +67,10 @@ create_hash(unsigned int *md_len, unsigned char *hash, FILE *fd,
 }
 
 unsigned char *
-read_key(FILE *fd_key, int *key_len)
+read_key(FILE *fd_key, size_t *key_len)
 {
 	unsigned char *key;
+	unsigned char *tmp;
 	size_t br;
 
 	key = malloc(BUFSIZE);
@@ -78,15 +79,18 @@ read_key(FILE *fd_key, int *key_len)
 
 	while ((br = fread(key + *key_len, sizeof(char), BUFSIZE, fd_key)) > 0) {
 		*key_len += br;
-		key = realloc(key, *key_len + BUFSIZE);
-		if (key == NULL)
+		tmp = realloc(key, *key_len + BUFSIZE);
+		if (tmp == NULL) {
+			free(key);
 			errx(EXIT_FAILURE, "error: realloc failed!");
+		}
+		key = tmp;
 	}
 	return key;
 }
 
 void
-prepare_pads(unsigned char *key, int key_len, unsigned char *k_ipad,
+prepare_pads(unsigned char *key, size_t key_len, unsigned char *k_ipad,
 	     unsigned char *k_opad)
 {
 	unsigned int md_len;
@@ -120,11 +124,12 @@ main(int argc, char *argv[])
 
 	unsigned char inner_hash[EVP_MAX_MD_SIZE];
 	unsigned char final_hash[EVP_MAX_MD_SIZE];
-	unsigned int md_len;
+	unsigned int inner_md_len;
+	unsigned int final_md_len;
 	FILE *fd_data, *fd_key;
 	unsigned char k_ipad[PADSIZE], k_opad[PADSIZE];
 	unsigned char *key;
-	int key_len = 0;
+	size_t key_len = 0;
 	int i;
 
 	if (argc != 3) {
@@ -138,21 +143,21 @@ main(int argc, char *argv[])
 
 	fd_key = fopen(argv[2], "r");
 	if (fd_key == NULL) {
+		fclose(fd_data);
 		err(EXIT_FAILURE, "error: open failed!");
 	}
 
 	key = read_key(fd_key, &key_len);
+	fclose(fd_key);
 	prepare_pads(key, key_len, k_ipad, k_opad);
 
-	create_hash(&md_len, inner_hash, fd_data, k_ipad, sizeof(k_ipad), NULL,
-		    0);
-	create_hash(&md_len, final_hash, NULL, k_opad, sizeof(k_opad),
-		    inner_hash, md_len);
-
+	create_hash(&inner_md_len, inner_hash, fd_data, k_ipad, sizeof(k_ipad),
+		    NULL, 0);
 	fclose(fd_data);
-	fclose(fd_key);
+	create_hash(&final_md_len, final_hash, NULL, k_opad, sizeof(k_opad),
+		    inner_hash, inner_md_len);
 
-	for (i = 0; i < (int)md_len; i++) {
+	for (i = 0; i < (int)final_md_len; i++) {
 		printf("%02x", final_hash[i]);
 	}
 
