@@ -8,6 +8,7 @@
 
 enum {
 	BUFSIZE = 4096,
+	PADSIZE = 64,
 	IPAD = 0x36,
 	OPAD = 0x5c
 };
@@ -91,20 +92,20 @@ prepare_pads(unsigned char *key, int key_len, unsigned char *k_ipad,
 	unsigned int md_len;
 	int i;
 
-	bzero(k_ipad, 64);
-	bzero(k_opad, 64);
+	memset(k_ipad, 0x00, PADSIZE);
+	memset(k_opad, 0x00, PADSIZE);
 
 	if (key_len < 20) {
 		warnx
 		    ("warning: key is too short (should be longer than 20 bytes)");
-		bcopy(key, k_ipad, key_len);
-		bcopy(key, k_opad, key_len);
-	} else if (key_len <= 64) {
-		bcopy(key, k_ipad, key_len);
-		bcopy(key, k_opad, key_len);
+	}
+
+	if (key_len <= 64) {
+		memcpy(k_ipad, key, key_len);
+		memcpy(k_opad, key, key_len);
 	} else {
 		create_hash(&md_len, k_ipad, NULL, NULL, 0, key, key_len);
-		bcopy(k_ipad, k_opad, md_len);
+		memcpy(k_opad, k_ipad, md_len);
 	}
 
 	for (i = 0; i < 64; i++) {
@@ -121,7 +122,7 @@ main(int argc, char *argv[])
 	unsigned char final_hash[EVP_MAX_MD_SIZE];
 	unsigned int md_len;
 	FILE *fd_data, *fd_key;
-	unsigned char k_ipad[64], k_opad[64];
+	unsigned char k_ipad[PADSIZE], k_opad[PADSIZE];
 	unsigned char *key;
 	int key_len = 0;
 	int i;
