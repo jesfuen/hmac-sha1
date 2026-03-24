@@ -4,7 +4,6 @@
 #include <err.h>
 #include <openssl/evp.h>
 #include <string.h>
-#include <strings.h>
 
 enum {
 	BUFSIZE = 4096,
